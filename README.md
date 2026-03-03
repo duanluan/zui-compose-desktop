@@ -1,6 +1,6 @@
 # ZUI Compose Desktop
 
-`top.zhjh` 组件库项目（Compose Desktop/JVM），从 `zutil-desktop` 的 `zui` 组件中独立拆分。
+`io.github.duanluan` 组件库项目（Compose Desktop/JVM），从 `zutil-desktop` 的 `zui` 组件中独立拆分。
 
 ## Module
 
@@ -10,6 +10,12 @@
 
 ```bash
 ./gradlew :zui:build
+```
+
+## Dependency
+
+```kotlin
+implementation("io.github.duanluan:zui-compose-desktop:0.1.0")
 ```
 
 ## Publish To Maven Central (Central Portal)
@@ -43,4 +49,4 @@
 ## Notes
 
 - `zui/demo` 仍保留在 `zutil-desktop` 项目中作为示例与宣传，不在本库发布。
-- 首次发布前请把 `gradle.properties` 中的 `POM_URL`/`POM_SCM_*` 替换成你的真实仓库地址。
+- 首次在 Central 发布前，请先在 Sonatype Central Portal 完成 `io.github.duanluan` 命名空间校验。
