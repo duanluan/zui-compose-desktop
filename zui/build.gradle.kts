@@ -7,6 +7,12 @@ plugins {
   alias(libs.plugins.binaryCompatibility)
 }
 
+plugins.withId("signing") {
+  extensions.configure<org.gradle.plugins.signing.SigningExtension> {
+    useGpgCmd()
+  }
+}
+
 kotlin {
   jvm()
   jvmToolchain(17)
