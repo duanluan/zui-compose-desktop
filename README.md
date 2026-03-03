@@ -1,6 +1,6 @@
 # ZUI Compose Desktop
 
-`io.github.duanluan` 组件库项目（Compose Desktop/JVM），从 `zutil-desktop` 的 `zui` 组件中独立拆分。
+`top.zhjh` 组件库项目（Compose Desktop/JVM），从 `zutil-desktop` 的 `zui` 组件中独立拆分。
 
 ## Module
 
@@ -15,7 +15,7 @@
 ## Dependency
 
 ```kotlin
-implementation("io.github.duanluan:zui-compose-desktop:0.1.0")
+implementation("top.zhjh:zui-compose-desktop:0.1.0")
 ```
 
 ## Publish To Maven Central (Central Portal)
@@ -49,4 +49,4 @@ implementation("io.github.duanluan:zui-compose-desktop:0.1.0")
 ## Notes
 
 - `zui/demo` 仍保留在 `zutil-desktop` 项目中作为示例与宣传，不在本库发布。
-- 首次在 Central 发布前，请先在 Sonatype Central Portal 完成 `io.github.duanluan` 命名空间校验。
+- 首次在 Central 发布前，请先在 Sonatype Central Portal 完成 `top.zhjh` 命名空间校验。
