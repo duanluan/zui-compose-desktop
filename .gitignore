@@ -1,0 +1,17 @@
+.gradle/
+.idea/
+.kotlinc/
+build/
+**/build/
+out/
+
+# Gradle wrappers and jars should be committed; keep only generated wrapper cache ignored.
+!gradle/wrapper/gradle-wrapper.jar
+
+# Maven Central credentials / signing secrets
+local.properties
+*.asc
+
+# OS
+.DS_Store
+Thumbs.db
