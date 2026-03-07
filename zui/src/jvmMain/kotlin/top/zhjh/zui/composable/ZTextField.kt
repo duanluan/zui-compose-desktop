@@ -38,6 +38,7 @@ import androidx.compose.ui.ExperimentalComposeUiApi
 import androidx.compose.ui.layout.onGloballyPositioned
 import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.text.TextStyle
+import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.text.input.PasswordVisualTransformation
 import androidx.compose.ui.text.input.VisualTransformation
@@ -313,6 +314,9 @@ fun ZTextField(
                 Text(
                   text = placeholder,
                   style = finalTextStyle,
+                  maxLines = if (finalSingleLine) 1 else Int.MAX_VALUE,
+                  softWrap = !finalSingleLine,
+                  overflow = if (finalSingleLine) TextOverflow.Ellipsis else TextOverflow.Clip,
                   color = textFieldStyle.placeholderColor
                 )
               }

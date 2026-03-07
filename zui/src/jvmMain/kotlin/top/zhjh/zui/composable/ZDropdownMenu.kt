@@ -32,7 +32,9 @@ import androidx.compose.ui.input.key.KeyEventType
 import androidx.compose.ui.input.key.key
 import androidx.compose.ui.input.key.onPreviewKeyEvent
 import androidx.compose.ui.input.key.type
+import androidx.compose.ui.layout.onSizeChanged
 import androidx.compose.ui.platform.LocalDensity
+import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.*
 import androidx.compose.ui.window.Popup
 import androidx.compose.ui.window.PopupPositionProvider
@@ -354,6 +356,9 @@ fun ZDropdownMenu(
   val resolvedSize = size ?: ZDropdownMenuDefaults.fromFormSize(LocalZFormSize.current)
   val resolvedFormSize = ZDropdownMenuDefaults.toFormSize(resolvedSize)
   val optionHeight = ZFormDefaults.resolveControlHeight(resolvedFormSize, ZTextFieldDefaults.MinHeight)
+  var anchorWidthPx by remember { mutableIntStateOf(0) }
+  val density = LocalDensity.current
+  val popupMinWidthDp = with(density) { anchorWidthPx.toDp() }
   val hasSelection = if (multiple) {
     selectedOptions.isNotEmpty()
   } else {
@@ -536,6 +541,9 @@ fun ZDropdownMenu(
         readOnly = !enableFiltering,
         modifier = modifier
           .hoverable(hoverInteractionSource)
+          .onSizeChanged { size ->
+            anchorWidthPx = size.width
+          }
           .onPreviewKeyEvent { keyEvent ->
             if (
               enableFiltering &&
@@ -591,6 +599,9 @@ fun ZDropdownMenu(
       Box(
         modifier = modifier
           .hoverable(hoverInteractionSource)
+          .onSizeChanged { size ->
+            anchorWidthPx = size.width
+          }
           .background(fieldStyle.backgroundColor, ZTextFieldDefaults.Shape)
           .border(1.dp, fieldStyle.borderColor, ZTextFieldDefaults.Shape)
           .defaultMinSize(minHeight = optionHeight)
@@ -605,6 +616,9 @@ fun ZDropdownMenu(
               Text(
                 text = placeholder,
                 style = compactFieldTextStyle,
+                maxLines = 1,
+                softWrap = false,
+                overflow = TextOverflow.Ellipsis,
                 color = fieldStyle.placeholderColor,
                 modifier = Modifier.padding(vertical = 4.dp)
               )
@@ -729,6 +743,9 @@ fun ZDropdownMenu(
                           Text(
                             text = placeholder,
                             style = compactFieldTextStyle,
+                            maxLines = 1,
+                            softWrap = false,
+                            overflow = TextOverflow.Ellipsis,
                             color = fieldStyle.placeholderColor
                           )
                         }
@@ -774,7 +791,9 @@ fun ZDropdownMenu(
     DropdownMenu(
       expanded = expanded && enabled,
       onDismissRequest = { setExpanded(false) },
-      modifier = Modifier.exposedDropdownSize(),
+      modifier = Modifier
+        .exposedDropdownSize(matchTextFieldWidth = false)
+        .widthIn(min = popupMinWidthDp),
       properties = PopupProperties(focusable = popupFocusable)
     ) {
       val hasHeader = dropdownHeader != null
@@ -869,6 +888,9 @@ fun ZDropdownMenu(
                   Text(
                     text = option.label,
                     style = textStyle,
+                    maxLines = 1,
+                    softWrap = false,
+                    overflow = TextOverflow.Clip,
                     color = if (isSelected && enabled) Color(0xff409eff) else LocalContentColor.current
                   )
                   if (multiple && isSelected) {
