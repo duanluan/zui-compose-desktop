@@ -1,6 +1,9 @@
 name: deploy
 
 on:
+  push:
+    tags:
+      - "v*"
   workflow_dispatch:
 
 jobs:
@@ -15,9 +18,16 @@ jobs:
       - uses: gradle/actions/setup-gradle@v4
       - name: Publish to Maven Central
         env:
+          # Sonatype Central Portal -> Account -> Generate User Token
+          # 这里填 Token 的用户名（通常是短字符串，不一定等于登录账号名）
           ORG_GRADLE_PROJECT_mavenCentralUsername: ${{ secrets.MAVEN_CENTRAL_USERNAME }}
+          # Sonatype Central Portal -> Account -> Generate User Token
+          # 这里填与上面用户名配套的 Token 密码
           ORG_GRADLE_PROJECT_mavenCentralPassword: ${{ secrets.MAVEN_CENTRAL_PASSWORD }}
+          # 本地 GPG 私钥导出（ASCII armor）：
+          # gpg --export-secret-keys --armor <KEY_ID>
+          # 将完整块（BEGIN/END PGP PRIVATE KEY BLOCK）存入该 secret
           ORG_GRADLE_PROJECT_signingInMemoryKey: ${{ secrets.SIGNING_IN_MEMORY_KEY }}
+          # 上面私钥对应的口令（passphrase）
           ORG_GRADLE_PROJECT_signingInMemoryKeyPassword: ${{ secrets.SIGNING_IN_MEMORY_KEY_PASSWORD }}
-          ORG_GRADLE_PROJECT_signingInMemoryKeyId: ${{ secrets.SIGNING_IN_MEMORY_KEY_ID }}
         run: ./gradlew deploy --stacktrace
