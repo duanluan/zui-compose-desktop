@@ -52,6 +52,18 @@ enum class ZSliderTooltipPlacement {
 }
 
 /**
+ * 滑块按钮（thumb）形态模式。
+ *
+ * 说明：
+ * - `CIRCLE`：默认圆形，保持现有视觉行为；
+ * - `CAPSULE`：胶囊形，最左/最右时与轨道边缘对齐（仅水平模式生效）。
+ */
+enum class ZSliderThumbMode {
+  CIRCLE,
+  CAPSULE
+}
+
+/**
  * 滑块标记点（marks）配置项。
  *
  * @property label 标记下方的文本内容（例如 `37°C`）。
@@ -799,7 +811,7 @@ fun ZSlider(
       ZSliderMarks(
         marks = resolvedMarks,
         defaultLabelColor = defaultMarkColor,
-        thumbSize = metrics.thumbSize,
+        horizontalPadding = metrics.thumbSize / 2,
         modifier = Modifier
           .align(Alignment.TopStart)
           .padding(top = metrics.containerHeight)
@@ -822,6 +834,7 @@ fun ZSlider(
  * - `showInputControls`：输入框显示 `+/-` 按钮（仅 `showInput = true` 时生效）；
  * - `validateEvent`：输入过程是否实时提交值（默认 `true`）；
  * - `vertical`：垂直模式（必须为外层显式设置高度）；
+ * - `thumbMode`：滑块按钮形态；`CAPSULE` 模式下端点与轨道边缘对齐（仅水平模式生效）；
  * - `marks`：标记点与标签（水平/垂直均支持）；
  * - `showTooltip`/`placement`：拖拽提示配置。
  */
@@ -845,6 +858,7 @@ fun ZSlider(
   vertical: Boolean = false,
   marks: Map<Float, ZSliderMark> = emptyMap(),
   metrics: ZSliderMetrics = ZSliderDefaults.Metrics,
+  thumbMode: ZSliderThumbMode = ZSliderThumbMode.CIRCLE,
   showTooltip: Boolean = true,
   placement: ZSliderTooltipPlacement = ZSliderTooltipPlacement.TOP,
   formatTooltip: (Float) -> String = { it.roundToInt().toString() }
@@ -895,6 +909,20 @@ fun ZSlider(
   var tooltipHeightPx by remember { mutableIntStateOf(0) }
   var isDragging by remember { mutableStateOf(false) }
   var dragFraction by remember { mutableFloatStateOf(valueFraction) }
+  val isCapsuleThumb = !vertical && thumbMode == ZSliderThumbMode.CAPSULE
+  val capsuleThumbWidthRatio = metrics.capsuleThumbWidthRatio.coerceAtLeast(0.1f)
+  val capsuleThumbHeightRatio = metrics.capsuleThumbHeightRatio.coerceAtLeast(0.1f)
+  val thumbWidthDp = if (isCapsuleThumb) {
+    metrics.thumbSize * capsuleThumbWidthRatio
+  } else {
+    metrics.thumbSize
+  }
+  val thumbHeightDp = if (isCapsuleThumb) {
+    metrics.thumbSize * capsuleThumbHeightRatio
+  } else {
+    metrics.thumbSize
+  }
+  val trackHorizontalPaddingDp = if (isCapsuleThumb) 0.dp else thumbWidthDp / 2f
 
   LaunchedEffect(valueFraction, isDragging) {
     if (!isDragging) {
@@ -1138,10 +1166,14 @@ fun ZSlider(
   val density = LocalDensity.current
   val containerHeightPx = with(density) { metrics.containerHeight.toPx() }
   val touchHeightPx = with(density) { metrics.touchHeight.toPx() }
-  val thumbSizePx = with(density) { metrics.thumbSize.toPx() }
-  val thumbRadiusPx = thumbSizePx / 2f
-  val thumbTopPx = (containerHeightPx - touchHeightPx) / 2f + (touchHeightPx - thumbSizePx) / 2f
-  val trackUsableWidthPx = (sliderWidthPx - thumbSizePx).coerceAtLeast(0f)
+  val thumbHeightPx = with(density) { thumbHeightDp.toPx() }
+  val thumbWidthPx = with(density) { thumbWidthDp.toPx() }
+  val thumbHalfWidthPx = thumbWidthPx / 2f
+  val thumbTopPx = (containerHeightPx - touchHeightPx) / 2f + (touchHeightPx - thumbHeightPx) / 2f
+  val trackUsableWidthPx = (sliderWidthPx - thumbWidthPx).coerceAtLeast(0f)
+  val trackHorizontalPaddingPx = with(density) { trackHorizontalPaddingDp.toPx() }
+  val trackVisualWidthPx = (sliderWidthPx - trackHorizontalPaddingPx * 2f).coerceAtLeast(0f)
+  val thumbShape = if (isCapsuleThumb) RoundedCornerShape(percent = 50) else CircleShape
   val displayedFraction = if (isDragging) {
     if (hasDiscreteStep && rangeSize > 0f) {
       ((snapValue(minValue + dragFraction * rangeSize) - minValue) / rangeSize).coerceIn(0f, 1f)
@@ -1152,16 +1184,18 @@ fun ZSlider(
     valueFraction
   }
   val displayedValue = minValue + displayedFraction * rangeSize
-  val thumbCenterPx = thumbRadiusPx + trackUsableWidthPx * displayedFraction
-  val thumbOffsetXPx = (thumbCenterPx - thumbRadiusPx).roundToInt()
-  val activeTrackWidthDp = with(density) { (trackUsableWidthPx * displayedFraction).toDp() }
+  val thumbCenterPx = thumbHalfWidthPx + trackUsableWidthPx * displayedFraction
+  val thumbOffsetXPx = (thumbCenterPx - thumbHalfWidthPx).roundToInt()
+  val activeTrackWidthDp = with(density) {
+    (thumbCenterPx - trackHorizontalPaddingPx).coerceIn(0f, trackVisualWidthPx).toDp()
+  }
   val sideTooltipGapPx = with(density) { 6.dp.toPx() }
 
   fun valueFromPosition(positionX: Float): Float {
     if (rangeSize == 0f || trackUsableWidthPx <= 0f) {
       return minValue
     }
-    val normalized = ((positionX - thumbRadiusPx) / trackUsableWidthPx).coerceIn(0f, 1f)
+    val normalized = ((positionX - thumbHalfWidthPx) / trackUsableWidthPx).coerceIn(0f, 1f)
     return snapValue(minValue + normalized * rangeSize)
   }
 
@@ -1228,14 +1262,14 @@ fun ZSlider(
             modifier = Modifier
               .align(Alignment.CenterStart)
               .fillMaxWidth()
-              .padding(horizontal = metrics.thumbSize / 2)
+              .padding(horizontal = trackHorizontalPaddingDp)
               .height(metrics.trackHeight)
               .background(style.inactiveTrackColor, RoundedCornerShape(percent = 50))
           )
           Box(
             modifier = Modifier
               .align(Alignment.CenterStart)
-              .padding(start = metrics.thumbSize / 2)
+              .padding(start = trackHorizontalPaddingDp)
               .height(metrics.trackHeight)
               .background(style.activeTrackColor, RoundedCornerShape(percent = 50))
               .width(activeTrackWidthDp)
@@ -1247,7 +1281,7 @@ fun ZSlider(
               modifier = Modifier
                 .align(Alignment.CenterStart)
                 .fillMaxWidth()
-                .padding(horizontal = metrics.thumbSize / 2)
+                .padding(horizontal = trackHorizontalPaddingDp)
                 .height(metrics.touchHeight)
             ) {
               val centerY = this.size.height / 2f
@@ -1271,7 +1305,7 @@ fun ZSlider(
               modifier = Modifier
                 .align(Alignment.CenterStart)
                 .fillMaxWidth()
-                .padding(horizontal = metrics.thumbSize / 2)
+                .padding(horizontal = trackHorizontalPaddingDp)
                 .height(metrics.touchHeight)
             ) {
               val centerY = this.size.height / 2f
@@ -1289,12 +1323,12 @@ fun ZSlider(
             modifier = Modifier
               .align(Alignment.CenterStart)
               .offset { IntOffset(x = thumbOffsetXPx, y = 0) }
-              .size(metrics.thumbSize)
-              .background(style.thumbColor, CircleShape)
+              .size(width = thumbWidthDp, height = thumbHeightDp)
+              .background(style.thumbColor, thumbShape)
               .border(
                 width = metrics.thumbBorderWidth,
                 color = style.thumbBorderColor,
-                shape = CircleShape
+                shape = thumbShape
               )
           )
         }
@@ -1312,20 +1346,20 @@ fun ZSlider(
           } else {
             tooltipHeightPx
           }
-          val thumbCenterYPx = thumbTopPx + thumbRadiusPx
+          val thumbCenterYPx = thumbTopPx + thumbHeightPx / 2f
           val tooltipOffsetX = when (placement) {
             ZSliderTooltipPlacement.TOP,
             ZSliderTooltipPlacement.BOTTOM -> (thumbCenterPx - resolvedTooltipWidthPx / 2f).roundToInt()
             ZSliderTooltipPlacement.LEFT -> (
-              thumbCenterPx - thumbRadiusPx - resolvedTooltipWidthPx - sideTooltipGapPx
+              thumbCenterPx - thumbHalfWidthPx - resolvedTooltipWidthPx - sideTooltipGapPx
               ).roundToInt()
             ZSliderTooltipPlacement.RIGHT -> (
-              thumbCenterPx + thumbRadiusPx + sideTooltipGapPx
+              thumbCenterPx + thumbHalfWidthPx + sideTooltipGapPx
               ).roundToInt()
           }
           val tooltipOffsetY = when (placement) {
             ZSliderTooltipPlacement.TOP -> (thumbTopPx - resolvedTooltipHeightPx - tooltipSpacingPx).roundToInt()
-            ZSliderTooltipPlacement.BOTTOM -> (thumbTopPx + thumbSizePx + bottomTooltipGapPx).roundToInt()
+            ZSliderTooltipPlacement.BOTTOM -> (thumbTopPx + thumbHeightPx + bottomTooltipGapPx).roundToInt()
             ZSliderTooltipPlacement.LEFT,
             ZSliderTooltipPlacement.RIGHT -> (thumbCenterYPx - resolvedTooltipHeightPx / 2f).roundToInt()
           }
@@ -1350,7 +1384,7 @@ fun ZSlider(
         ZSliderMarks(
           marks = resolvedMarks,
           defaultLabelColor = defaultMarkColor,
-          thumbSize = metrics.thumbSize,
+          horizontalPadding = trackHorizontalPaddingDp,
           modifier = Modifier
             .align(Alignment.TopStart)
             .padding(top = metrics.containerHeight)
@@ -1462,7 +1496,7 @@ private fun resolvedMarkColor(markColor: Color, fallbackColor: Color): Color {
 private fun ZSliderMarks(
   marks: List<ZSliderResolvedMark>,
   defaultLabelColor: Color,
-  thumbSize: Dp,
+  horizontalPadding: Dp,
   modifier: Modifier = Modifier
 ) {
   if (marks.isEmpty()) return
@@ -1471,7 +1505,7 @@ private fun ZSliderMarks(
   BoxWithConstraints(
     modifier = modifier
       .height(28.dp)
-      .padding(horizontal = thumbSize / 2)
+      .padding(horizontal = horizontalPadding)
   ) {
     val trackWidthPx = with(density) { maxWidth.toPx() }
     val labelTopOffsetPx = with(density) { 4.dp.roundToPx() }
@@ -1972,7 +2006,7 @@ private fun formatSliderInputValue(value: Float): String {
 }
 
 @Immutable
-private data class ZSliderStyle(
+data class ZSliderStyle(
   val activeTrackColor: Color,
   val inactiveTrackColor: Color,
   val thumbColor: Color,
@@ -1989,7 +2023,9 @@ private data class ZSliderStyle(
  * - `touchHeight`：可交互热区高度；
  * - `trackHeight`：轨道厚度；
  * - `thumbSize`：滑块圆点尺寸；
- * - `thumbBorderWidth`：圆点边框宽度。
+ * - `thumbBorderWidth`：圆点边框宽度；
+ * - `capsuleThumbWidthRatio`：胶囊宽度相对 `thumbSize` 的倍数；
+ * - `capsuleThumbHeightRatio`：胶囊高度相对 `thumbSize` 的倍数。
  */
 @Immutable
 data class ZSliderMetrics(
@@ -1997,7 +2033,9 @@ data class ZSliderMetrics(
   val touchHeight: Dp,
   val trackHeight: Dp,
   val thumbSize: Dp,
-  val thumbBorderWidth: Dp
+  val thumbBorderWidth: Dp,
+  val capsuleThumbWidthRatio: Float = 1.4f,
+  val capsuleThumbHeightRatio: Float = 0.8f
 )
 
 /**
@@ -2051,11 +2089,30 @@ private fun resolveZSliderStyle(
  * 滑块默认尺寸配置。
  */
 object ZSliderDefaults {
+  // 胶囊宽度 = thumbSize * CapsuleThumbWidthRatio
+  const val CapsuleThumbWidthRatio: Float = 1.4f
+
+  // 胶囊高度 = thumbSize * CapsuleThumbHeightRatio
+  const val CapsuleThumbHeightRatio: Float = 0.8f
+
   val Metrics = ZSliderMetrics(
-    containerHeight = 54.dp,
+    // 组件总高度（仅水平模式）：包含轨道、拇指和上下留白。
+    // 该值越大，单行 Row 的视觉行高越高。
+    containerHeight = 25.dp,
+    // 实际响应鼠标/手势的热区高度。
+    // 通常略小于或接近 containerHeight，确保交互范围够大但不显臃肿。
     touchHeight = 24.dp,
+    // 轨道粗细（激活/未激活轨道共用）。
+    // 只影响“线条厚度”，不改变可拖拽范围长度。
     trackHeight = 6.dp,
-    thumbSize = 24.dp,
-    thumbBorderWidth = 2.dp
+    // 滑块拇指尺寸（圆点直径；胶囊模式为高度基准）。
+    // 它会直接影响命中手感与视觉权重，也会参与轨道端点的几何计算。
+    thumbSize = 20.dp,
+    // 拇指边框宽度；用于强调可拖拽状态和主题对比。
+    thumbBorderWidth = 2.dp,
+    // 胶囊宽度倍率（仅 thumbMode = CAPSULE 生效）。
+    capsuleThumbWidthRatio = CapsuleThumbWidthRatio,
+    // 胶囊高度倍率（仅 thumbMode = CAPSULE 生效）。
+    capsuleThumbHeightRatio = CapsuleThumbHeightRatio
   )
 }
