@@ -6,6 +6,7 @@ import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.foundation.interaction.collectIsHoveredAsState
 import androidx.compose.foundation.interaction.collectIsPressedAsState
 import androidx.compose.foundation.layout.*
+import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.LocalContentColor
 import androidx.compose.material.LocalTextStyle
@@ -208,6 +209,7 @@ fun ZButton(
     Box(
       contentAlignment = contentAlignment,
       modifier = Modifier
+        .clip(CircleShape)
           // 按钮启用时添加点击事件
         .then(if (isClickable) Modifier.clickable(onClick = resolvedOnClick) else Modifier)
         .defaultMinSize(minWidth = metrics.circleSize, minHeight = metrics.circleSize)
