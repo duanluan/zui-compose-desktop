@@ -805,12 +805,13 @@ fun ZDropdownMenu(
       val groupLabelColor = if (isDarkTheme) Color(0xff8d9095) else Color(0xff909399)
 
       if (hasHeader) {
+        val header = requireNotNull(dropdownHeader)
         Box(
           modifier = Modifier
             .fillMaxWidth()
             .padding(start = 12.dp, end = 12.dp, top = 0.dp, bottom = 8.dp)
         ) {
-          dropdownHeader?.invoke()
+          header()
         }
         Divider()
       }
@@ -931,6 +932,7 @@ fun ZDropdownMenu(
         }
       }
       if (hasFooter) {
+        val footer = requireNotNull(dropdownFooter)
         if (hasBodyContent) {
           Divider()
         }
@@ -939,7 +941,7 @@ fun ZDropdownMenu(
             .fillMaxWidth()
             .padding(start = 12.dp, end = 12.dp, top = 8.dp, bottom = 0.dp)
         ) {
-          dropdownFooter?.invoke()
+          footer()
         }
       }
     }

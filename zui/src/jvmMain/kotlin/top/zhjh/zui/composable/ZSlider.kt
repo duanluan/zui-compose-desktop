@@ -2006,7 +2006,7 @@ private fun formatSliderInputValue(value: Float): String {
 }
 
 @Immutable
-data class ZSliderStyle(
+private data class ZSliderStyle(
   val activeTrackColor: Color,
   val inactiveTrackColor: Color,
   val thumbColor: Color,

@@ -566,10 +566,9 @@ private fun ZTabsPanel(
   tabsStyle: ZTabsStyle,
   contentPadding: PaddingValues
 ) {
-  val activeTab = tabs.firstOrNull { it.name == activeName }
-  val canRender = activeTab != null && (
-    !activeTab.lazy || visitedTabs[activeTab.name] == true || activeTab.name == activeName
-    )
+  val tabToRender = tabs.firstOrNull { it.name == activeName }?.takeIf { tab ->
+    !tab.lazy || visitedTabs[tab.name] == true || tab.name == activeName
+  }
 
   val panelModifier = Modifier
     .fillMaxWidth()
@@ -584,9 +583,7 @@ private fun ZTabsPanel(
     )
 
   Box(modifier = panelModifier) {
-    if (canRender && activeTab != null) {
-      activeTab.content()
-    }
+    tabToRender?.content()
   }
 }
 
