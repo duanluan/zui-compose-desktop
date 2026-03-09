@@ -13,12 +13,14 @@ import androidx.compose.foundation.hoverable
 import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.foundation.interaction.collectIsHoveredAsState
 import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.offset
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.runtime.*
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.alpha
+import androidx.compose.ui.draw.shadow
 import androidx.compose.ui.geometry.CornerRadius
 import androidx.compose.ui.geometry.RoundRect
 import androidx.compose.ui.graphics.*
@@ -97,6 +99,7 @@ object ZTooltipDefaults {
   val LightTextColor = Color(0xff303133)
   val LightBorderColor = Color(0xffe4e7ed)
   val SlideFadeOffsetX = 10.dp
+  val SingleLineHeightThreshold = 48.dp
 }
 
 private enum class ZTooltipDirection {
@@ -224,8 +227,11 @@ private class TooltipShape(
 
         ZTooltipDirection.Left, ZTooltipDirection.Right -> {
           val maxY = (rectHeight - arrowBase).coerceAtLeast(0f)
-          // left/right 下箭头保持贴近提示框中线，避免单行内容时视觉上过于靠上/靠下。
-          val localY = ((rectHeight - arrowBase) / 2f).plus(arrowShiftY).coerceIn(0f, maxY)
+          val localY = when (placement.align) {
+            ZTooltipAlign.Start -> arrowInset
+            ZTooltipAlign.Center -> (rectHeight - arrowBase) / 2f
+            ZTooltipAlign.End -> rectHeight - arrowBase - arrowInset
+          }.plus(arrowShiftY).coerceIn(0f, maxY)
           val startY = rectTop + localY
 
           if (placement.direction == ZTooltipDirection.Left) {
@@ -279,6 +285,13 @@ fun ZTooltip(
   backgroundBrush: Brush? = null,
   textColor: Color? = null,
   borderColor: Color? = null,
+  elevation: Dp = 0.dp,
+  contentPadding: PaddingValues = PaddingValues(
+    horizontal = ZTooltipDefaults.ContentHorizontalPadding,
+    vertical = ZTooltipDefaults.ContentVerticalPadding
+  ),
+  cornerRadius: Dp = ZTooltipDefaults.CornerRadius,
+  borderWidth: Dp = ZTooltipDefaults.BorderWidth,
   tooltipContent: (@Composable (textColor: Color) -> Unit)? = null,
   visible: Boolean? = null,
   virtualTriggering: Boolean = false,
@@ -308,6 +321,10 @@ fun ZTooltip(
     backgroundBrush = backgroundBrush,
     textColor = textColor,
     borderColor = borderColor,
+    elevation = elevation,
+    contentPadding = contentPadding,
+    cornerRadius = cornerRadius,
+    borderWidth = borderWidth,
     tooltipContent = tooltipContent,
     visible = visible,
     virtualTriggering = virtualTriggering,
@@ -342,6 +359,13 @@ fun ZTooltip(
   backgroundBrush: Brush? = null,
   textColor: Color? = null,
   borderColor: Color? = null,
+  elevation: Dp = 0.dp,
+  contentPadding: PaddingValues = PaddingValues(
+    horizontal = ZTooltipDefaults.ContentHorizontalPadding,
+    vertical = ZTooltipDefaults.ContentVerticalPadding
+  ),
+  cornerRadius: Dp = ZTooltipDefaults.CornerRadius,
+  borderWidth: Dp = ZTooltipDefaults.BorderWidth,
   visible: Boolean? = null,
   virtualTriggering: Boolean = false,
   virtualRef: IntRect? = null,
@@ -371,6 +395,10 @@ fun ZTooltip(
     backgroundBrush = backgroundBrush,
     textColor = textColor,
     borderColor = borderColor,
+    elevation = elevation,
+    contentPadding = contentPadding,
+    cornerRadius = cornerRadius,
+    borderWidth = borderWidth,
     tooltipContent = tooltipContent,
     visible = visible,
     virtualTriggering = virtualTriggering,
@@ -406,6 +434,13 @@ fun ZTooltip(
   backgroundBrush: Brush? = null,
   textColor: Color? = null,
   borderColor: Color? = null,
+  elevation: Dp = 0.dp,
+  contentPadding: PaddingValues = PaddingValues(
+    horizontal = ZTooltipDefaults.ContentHorizontalPadding,
+    vertical = ZTooltipDefaults.ContentVerticalPadding
+  ),
+  cornerRadius: Dp = ZTooltipDefaults.CornerRadius,
+  borderWidth: Dp = ZTooltipDefaults.BorderWidth,
   tooltipContent: (@Composable (textColor: Color) -> Unit)? = null,
   visible: Boolean? = null,
   virtualTriggering: Boolean = false,
@@ -431,8 +466,12 @@ fun ZTooltip(
   val resolvedVirtualAnchorBounds = virtualAnchorBounds ?: virtualRef
   val popupVisible = visible ?: internalPopupVisible
   val popupGapPx = with(LocalDensity.current) { offset.coerceAtLeast(0.dp).roundToPx() }
+  val singleLineHeightThresholdPx = with(LocalDensity.current) { ZTooltipDefaults.SingleLineHeightThreshold.toPx() }
   val horizontalArrowCenterFromStartPx = with(LocalDensity.current) {
     (ZTooltipDefaults.ArrowInset + ZTooltipDefaults.ArrowLongSide / 2).roundToPx()
+  }
+  val verticalArrowCenterFromTopPx = with(LocalDensity.current) {
+    (ZTooltipDefaults.ArrowVerticalInset + ZTooltipDefaults.ArrowLongSide / 2).roundToPx()
   }
   val resolvedShowAfter = showAfter.coerceAtLeast(0).toLong()
   val resolvedHideAfter = hideAfter.coerceAtLeast(0).toLong()
@@ -589,12 +628,16 @@ fun ZTooltip(
   val popupPositionProvider = remember(
     resolvedPlacement,
     popupGapPx,
-    horizontalArrowCenterFromStartPx
+    horizontalArrowCenterFromStartPx,
+    verticalArrowCenterFromTopPx,
+    singleLineHeightThresholdPx
   ) {
     zTooltipPopupPositionProvider(
       placement = resolvedPlacement,
       gapPx = popupGapPx,
       horizontalArrowCenterFromStartPx = horizontalArrowCenterFromStartPx,
+      verticalArrowCenterFromTopPx = verticalArrowCenterFromTopPx,
+      singleLineHeightThresholdPx = singleLineHeightThresholdPx,
       virtualAnchorBoundsState = currentVirtualAnchorBoundsState,
       hostWindowState = currentHostWindowState,
       constrainToWindowState = currentConstrainToWindowState,
@@ -663,7 +706,7 @@ fun ZTooltip(
     reference()
 
     if (renderPopup) {
-      val dismissOnClickOutside = canUseInternalTrigger && resolvedTrigger == ZTooltipTrigger.CLICK
+      val dismissOnClickOutside = resolvedTrigger == ZTooltipTrigger.CLICK && (canUseInternalTrigger || visible != null)
       Popup(
         popupPositionProvider = popupPositionProvider,
         onDismissRequest = {
@@ -696,6 +739,10 @@ fun ZTooltip(
             backgroundBrush = backgroundBrush,
             textColor = textColor,
             borderColor = borderColor,
+            elevation = elevation,
+            contentPadding = contentPadding,
+            cornerRadius = cornerRadius,
+            borderWidth = borderWidth,
             showArrow = showArrow,
             arrowShiftXPx = popupGeometryState.value.arrowShiftXPx,
             arrowShiftYPx = popupGeometryState.value.arrowShiftYPx,
@@ -728,6 +775,13 @@ fun ZTooltip(
   backgroundBrush: Brush? = null,
   textColor: Color? = null,
   borderColor: Color? = null,
+  elevation: Dp = 0.dp,
+  contentPadding: PaddingValues = PaddingValues(
+    horizontal = ZTooltipDefaults.ContentHorizontalPadding,
+    vertical = ZTooltipDefaults.ContentVerticalPadding
+  ),
+  cornerRadius: Dp = ZTooltipDefaults.CornerRadius,
+  borderWidth: Dp = ZTooltipDefaults.BorderWidth,
   visible: Boolean? = null,
   virtualTriggering: Boolean = false,
   virtualRef: IntRect? = null,
@@ -757,6 +811,10 @@ fun ZTooltip(
     backgroundBrush = backgroundBrush,
     textColor = textColor,
     borderColor = borderColor,
+    elevation = elevation,
+    contentPadding = contentPadding,
+    cornerRadius = cornerRadius,
+    borderWidth = borderWidth,
     tooltipContent = tooltipContent,
     visible = visible,
     virtualTriggering = virtualTriggering,
@@ -781,6 +839,10 @@ private fun ZTooltipCard(
   backgroundBrush: Brush?,
   textColor: Color?,
   borderColor: Color?,
+  elevation: Dp,
+  contentPadding: PaddingValues,
+  cornerRadius: Dp,
+  borderWidth: Dp,
   showArrow: Boolean,
   arrowShiftXPx: Float,
   arrowShiftYPx: Float,
@@ -800,7 +862,7 @@ private fun ZTooltipCard(
       ZTooltipDirection.Left, ZTooltipDirection.Right -> ZTooltipDefaults.ArrowVerticalInset.toPx()
     }
   }
-  val cornerRadiusPx = with(density) { ZTooltipDefaults.CornerRadius.toPx() }
+  val cornerRadiusPx = with(density) { cornerRadius.toPx() }
 
   val shape = remember(
     showArrow,
@@ -823,7 +885,7 @@ private fun ZTooltipCard(
         cornerRadius = cornerRadiusPx
       )
     } else {
-      RoundedCornerShape(ZTooltipDefaults.CornerRadius)
+      RoundedCornerShape(cornerRadius)
     }
   }
 
@@ -847,6 +909,11 @@ private fun ZTooltipCard(
           Modifier
         }
       )
+      .shadow(
+        elevation = elevation,
+        shape = shape,
+        clip = false
+      )
       .then(
         if (backgroundBrush != null) {
           Modifier.background(brush = backgroundBrush, shape = shape)
@@ -855,15 +922,12 @@ private fun ZTooltipCard(
         }
       )
       .border(
-        width = ZTooltipDefaults.BorderWidth,
+        width = borderWidth,
         color = resolvedBorderColor,
         shape = shape
       )
       .then(contentPaddingModifier)
-      .padding(
-        horizontal = ZTooltipDefaults.ContentHorizontalPadding,
-        vertical = ZTooltipDefaults.ContentVerticalPadding
-      )
+      .padding(contentPadding)
   ) {
     tooltipContent?.invoke(resolvedTextColor)
       ?: ZText(
@@ -1009,6 +1073,8 @@ private fun zTooltipPopupPositionProvider(
   placement: ZTooltipPlacement,
   gapPx: Int,
   horizontalArrowCenterFromStartPx: Int,
+  verticalArrowCenterFromTopPx: Int,
+  singleLineHeightThresholdPx: Float,
   virtualAnchorBoundsState: State<IntRect?>,
   hostWindowState: State<Window?>,
   constrainToWindowState: State<Boolean>,
@@ -1027,13 +1093,21 @@ private fun zTooltipPopupPositionProvider(
         hostWindow = hostWindowState.value,
         constrainToWindow = constrainToWindowState.value
       )
-      val resolvedPlacement = resolveTooltipAutoFlippedPlacement(
+      val autoFlippedPlacement = resolveTooltipAutoFlippedPlacement(
         placement = placement,
         anchorBounds = resolvedAnchorBounds,
         constraintBounds = constraintBounds,
         popupContentSize = popupContentSize,
         gapPx = gapPx
       )
+      val isLeftOrRight = autoFlippedPlacement.direction == ZTooltipDirection.Left ||
+        autoFlippedPlacement.direction == ZTooltipDirection.Right
+      val isShortContent = popupContentSize.height.toFloat() <= singleLineHeightThresholdPx
+      val resolvedPlacement = if (isLeftOrRight && isShortContent) {
+        autoFlippedPlacement.copy(align = ZTooltipAlign.Center)
+      } else {
+        autoFlippedPlacement
+      }
       val alignedX = resolveTooltipAlignedX(
         anchorBounds = resolvedAnchorBounds,
         popupContentSize = popupContentSize,
@@ -1044,7 +1118,8 @@ private fun zTooltipPopupPositionProvider(
       val alignedY = resolveTooltipAlignedY(
         anchorBounds = resolvedAnchorBounds,
         popupContentSize = popupContentSize,
-        align = resolvedPlacement.align
+        align = resolvedPlacement.align,
+        arrowCenterFromTopPx = verticalArrowCenterFromTopPx
       )
 
       val rawX: Int
@@ -1116,11 +1191,7 @@ private fun resolveTooltipAutoFlippedPlacement(
     }
   }
 
-  // left/right 下 tooltip 的箭头始终走中线策略，避免单行内容时 start/end 产生明显上/下偏移。
-  val resolvedAlign = when (resolvedDirection) {
-    ZTooltipDirection.Left, ZTooltipDirection.Right -> ZTooltipAlign.Center
-    ZTooltipDirection.Top, ZTooltipDirection.Bottom -> placement.align
-  }
+  val resolvedAlign = placement.align
 
   return if (resolvedDirection == placement.direction && resolvedAlign == placement.align) {
     placement
@@ -1220,11 +1291,16 @@ private fun resolveTooltipAlignedX(
 private fun resolveTooltipAlignedY(
   anchorBounds: IntRect,
   popupContentSize: IntSize,
-  align: ZTooltipAlign
+  align: ZTooltipAlign,
+  arrowCenterFromTopPx: Int
 ): Int {
   val centerY = anchorBounds.top + (anchorBounds.height - popupContentSize.height) / 2
+  val anchorCenterY = anchorBounds.top + anchorBounds.height / 2
+  val endArrowCenterFromTop = popupContentSize.height - arrowCenterFromTopPx
   return when (align) {
-    ZTooltipAlign.Start, ZTooltipAlign.Center, ZTooltipAlign.End -> centerY
+    ZTooltipAlign.Start -> anchorCenterY - arrowCenterFromTopPx
+    ZTooltipAlign.Center -> centerY
+    ZTooltipAlign.End -> anchorCenterY - endArrowCenterFromTop
   }
 }
 
