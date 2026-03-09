@@ -18,7 +18,6 @@ import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.StrokeCap
 import androidx.compose.ui.graphics.TransformOrigin
-import androidx.compose.ui.graphics.drawscope.Stroke
 import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.platform.LocalUriHandler
 import androidx.compose.ui.text.TextStyle
@@ -44,6 +43,17 @@ enum class ZButtonSize {
   Large,
   Default,
   Small
+}
+
+/**
+ * 按钮表现类型。
+ *
+ * - [Default]：默认表现，按 `type` 渲染背景和边框；
+ * - [Text]：基于 `ZColorType.DEFAULT` 的文本按钮表现，仅移除边框，其余交互保持一致。
+ */
+enum class ZButtonType {
+  Default,
+  Text
 }
 
 internal data class ZButtonMetrics(
@@ -101,7 +111,8 @@ fun ZButtonGroup(
  *
  * @param onClick 点击事件
  * @param modifier 修饰符
- * @param type 类型，默认 [ZColorType.INFO]
+ * @param type 颜色类型，默认 [ZColorType.DEFAULT]
+ * @param buttonType 按钮表现类型，默认 [ZButtonType.Default]
  * @param icon 按钮内图标组件
  * @param contentPadding 内边距，默认 [ZButtonDefaults.ContentPadding]
  * @param contentAlignment 内容水平对齐方式，默认 [Alignment.Center]
@@ -117,6 +128,7 @@ fun ZButton(
   modifier: Modifier = Modifier,
   size: ZButtonSize? = null,
   type: ZColorType = DEFAULT,
+  buttonType: ZButtonType = ZButtonType.Default,
   href: String? = null,
   icon: @Composable (() -> Unit)? = null,
   loading: Boolean = false,
@@ -146,6 +158,7 @@ fun ZButton(
   // 圆角半径
   val shape = when {
     isInButtonGroup -> RoundedCornerShape(0.dp)
+    circle -> CircleShape
     round -> RoundedCornerShape(50) // 圆角按钮（左右两端为半圆）
     else -> ZButtonDefaults.Shape // 默认形状
   }
@@ -159,9 +172,11 @@ fun ZButton(
   val isPressed by interactionSource.collectIsPressedAsState()
 
   // 获取样式
-  val buttonStyle = getZButtonStyle(type, isDarkTheme, plain, isHovered, isPressed, enabled)
+  val isTextButton = buttonType == ZButtonType.Text
+  val resolvedColorType = type
+  val buttonStyle = getZButtonStyle(resolvedColorType, isDarkTheme, plain, isHovered, isPressed, enabled, isTextButton)
   val visualStyle = if (loading) {
-    getLoadingButtonStyle(buttonStyle, type, plain, isDarkTheme)
+    getLoadingButtonStyle(buttonStyle, resolvedColorType, plain, isDarkTheme, isTextButton)
   } else {
     buttonStyle
   }
@@ -179,78 +194,48 @@ fun ZButton(
   } else {
     icon
   }
+  val minWidth = if (circle) metrics.circleSize else Dp.Unspecified
 
-  // 非圆形
-  if (!circle) {
-    Box(
-      contentAlignment = contentAlignment,
-      modifier = Modifier
-        .clip(shape)
-        .background(visualStyle.backgroundColor)
-        .border(BorderStroke(1.dp, visualStyle.borderColor), shape)
-          // 按钮启用时添加点击事件
-        .then(if (isClickable) Modifier.clickable(onClick = resolvedOnClick) else Modifier)
-        .defaultMinSize(minHeight = metrics.minHeight)
-        .then(modifier)
-    ) {
-      ZButtonContent(
-        buttonStyle = visualStyle,
-        textStyle = metrics.textStyle,
-        iconSize = metrics.iconSize,
-        iconSpacing = resolvedIconSpacing,
-        contentPadding = finalContentPadding,
-        icon = resolvedIcon,
-        loading = loading,
-        content = content,
-        circle = false
-      )
-    }
-  } else {
-    Box(
-      contentAlignment = contentAlignment,
-      modifier = Modifier
-        .clip(CircleShape)
-          // 按钮启用时添加点击事件
-        .then(if (isClickable) Modifier.clickable(onClick = resolvedOnClick) else Modifier)
-        .defaultMinSize(minWidth = metrics.circleSize, minHeight = metrics.circleSize)
-        .then(modifier)
-    ) {
-      // 使用Canvas绘制圆形
-      Canvas(modifier = Modifier.matchParentSize()) {
-        if (type == DEFAULT) {
-          // DEFAULT类型只绘制边框圆形
-          drawCircle(
-            color = visualStyle.borderColor,
-            style = Stroke(1.dp.toPx())
-          )
+  Box(
+    contentAlignment = contentAlignment,
+    modifier = Modifier
+      .clip(shape)
+      .background(visualStyle.backgroundColor)
+      .then(
+        if (isTextButton) {
+          Modifier
         } else {
-          // 非DEFAULT类型绘制背景圆形
-          drawCircle(
-            color = visualStyle.backgroundColor
-          )
-
-          // 如果是plain类型，也绘制边框
-          if (plain) {
-            drawCircle(
-              color = visualStyle.borderColor,
-              style = Stroke(1.dp.toPx())
-            )
-          }
+          Modifier.border(BorderStroke(1.dp, visualStyle.borderColor), shape)
         }
-      }
-
-      ZButtonContent(
-        buttonStyle = visualStyle,
-        textStyle = metrics.textStyle,
-        iconSize = metrics.iconSize,
-        iconSpacing = resolvedIconSpacing,
-        contentPadding = finalContentPadding,
-        icon = resolvedIcon,
-        loading = loading,
-        content = content,
-        circle = true
       )
-    }
+      // 按钮启用时添加点击事件
+      .then(
+        if (isClickable) {
+          Modifier
+            .hoverable(interactionSource)
+            .clickable(
+              interactionSource = interactionSource,
+              indication = null,
+              onClick = resolvedOnClick
+            )
+        } else {
+          Modifier
+        }
+      )
+      .defaultMinSize(minWidth = minWidth, minHeight = metrics.minHeight)
+      .then(modifier)
+  ) {
+    ZButtonContent(
+      buttonStyle = visualStyle,
+      textStyle = metrics.textStyle,
+      iconSize = metrics.iconSize,
+      iconSpacing = resolvedIconSpacing,
+      contentPadding = finalContentPadding,
+      icon = resolvedIcon,
+      loading = loading,
+      content = content,
+      circle = circle
+    )
   }
 }
 
@@ -266,9 +251,9 @@ private fun ZButtonContent(
   content: (@Composable RowScope.() -> Unit)? = null,
   circle: Boolean = false
 ) {
-  val loadingRotation = if (loading) {
-    val transition = rememberInfiniteTransition(label = "z_button_loading_rotation")
-    val angle by transition.animateFloat(
+  val transition = rememberInfiniteTransition(label = "z_button_loading_rotation")
+  val angleState = if (loading) {
+    transition.animateFloat(
       initialValue = 0f,
       targetValue = 360f,
       animationSpec = infiniteRepeatable(
@@ -280,9 +265,8 @@ private fun ZButtonContent(
       ),
       label = "z_button_loading_rotation_angle"
     )
-    angle
   } else {
-    0f
+    null
   }
 
   // 提供内容颜色的上下文，使所有子组件继承此颜色
@@ -299,7 +283,7 @@ private fun ZButtonContent(
           modifier = Modifier
             .size(iconSize)
             .graphicsLayer {
-              rotationZ = if (loading) loadingRotation else 0f
+              rotationZ = if (loading) (angleState?.value ?: 0f) else 0f
               transformOrigin = TransformOrigin.Center
               clip = loading
             },
@@ -364,8 +348,12 @@ private fun getLoadingButtonStyle(
   baseStyle: ZButtonStyle,
   type: ZColorType,
   isPlain: Boolean,
-  isDarkTheme: Boolean
+  isDarkTheme: Boolean,
+  isTextButton: Boolean
 ): ZButtonStyle {
+  if (isTextButton) {
+    return baseStyle
+  }
   if (type == PRIMARY && !isPlain) {
     val loadingColor = if (isDarkTheme) {
       ZButtonDefaults.LoadingPrimaryDarkColor
@@ -383,7 +371,15 @@ private fun getLoadingButtonStyle(
 /**
  * 根据按钮类型、悬停状态和主题模式获取按钮样式
  */
-private fun getZButtonStyle(type: ZColorType, isDarkTheme: Boolean, isPlain: Boolean, isHovered: Boolean, isPressed: Boolean, enabled: Boolean): ZButtonStyle {
+private fun getZButtonStyle(type: ZColorType, isDarkTheme: Boolean, isPlain: Boolean, isHovered: Boolean, isPressed: Boolean, enabled: Boolean, isTextButton: Boolean = false): ZButtonStyle {
+  if (isTextButton) {
+    return ZButtonStyle(
+      backgroundColor = Color.Transparent,
+      borderColor = Color.Transparent,
+      textColor = getTextButtonTextColor(type, isDarkTheme, isHovered, isPressed, enabled)
+    )
+  }
+
   if (!enabled) {
     return when (type) {
       DEFAULT -> {
@@ -831,6 +827,76 @@ private fun getZButtonStyle(type: ZColorType, isDarkTheme: Boolean, isPlain: Boo
           )
         }
 
+      }
+    }
+  }
+}
+
+private fun getTextButtonTextColor(
+  type: ZColorType,
+  isDarkTheme: Boolean,
+  isHovered: Boolean,
+  isPressed: Boolean,
+  enabled: Boolean
+): Color {
+  if (!enabled) {
+    return when (type) {
+      DEFAULT -> if (isDarkTheme) Color(0xff888888) else Color(0xffbcbec4)
+      PRIMARY -> if (isDarkTheme) Color(0xff2a598a) else Color(0xffa0cfff)
+      SUCCESS -> if (isDarkTheme) Color(0xff3e6b27) else Color(0xffb3e19d)
+      INFO -> if (isDarkTheme) Color(0xff4f5153) else Color(0xffc8c8cc)
+      WARNING -> if (isDarkTheme) Color(0xff7d5b28) else Color(0xfff3d19e)
+      DANGER -> if (isDarkTheme) Color(0xff854040) else Color(0xfffab6b6)
+    }
+  }
+
+  return when (type) {
+    DEFAULT -> {
+      when {
+        isPressed -> Color(0xff337ecc)
+        isHovered -> Color(0xff409eff)
+        isDarkTheme -> Color(0xffcfd3dc)
+        else -> Color(0xff606266)
+      }
+    }
+
+    PRIMARY -> {
+      when {
+        isPressed -> Color(0xff337ecc)
+        isHovered -> Color(0xff79bbff)
+        else -> Color(0xff409eff)
+      }
+    }
+
+    SUCCESS -> {
+      when {
+        isPressed -> Color(0xff529b2e)
+        isHovered -> Color(0xff85ce61)
+        else -> Color(0xff67c23a)
+      }
+    }
+
+    INFO -> {
+      when {
+        isPressed -> Color(0xff73767a)
+        isHovered -> Color(0xffa6a9ad)
+        else -> Color(0xff909399)
+      }
+    }
+
+    WARNING -> {
+      when {
+        isPressed -> Color(0xffb88230)
+        isHovered -> Color(0xffebb563)
+        else -> Color(0xffe6a23c)
+      }
+    }
+
+    DANGER -> {
+      when {
+        isPressed -> Color(0xffc45656)
+        isHovered -> Color(0xfff78989)
+        else -> Color(0xfff56c6c)
       }
     }
   }
