@@ -81,6 +81,21 @@ public final class top/zhjh/zui/composable/ZCardKt {
 	public static final fun ZCard (Landroidx/compose/ui/Modifier;Landroidx/compose/ui/Modifier;Landroidx/compose/ui/Modifier;Landroidx/compose/ui/Modifier;Ltop/zhjh/zui/enums/ZCardShadow;Lkotlin/jvm/functions/Function2;Lkotlin/jvm/functions/Function2;Landroidx/compose/foundation/layout/PaddingValues;Lkotlin/jvm/functions/Function2;Landroidx/compose/runtime/Composer;II)V
 }
 
+public final class top/zhjh/zui/composable/ZCheckTagDefaults {
+	public static final field $stable I
+	public static final field INSTANCE Ltop/zhjh/zui/composable/ZCheckTagDefaults;
+	public final fun getContentPadding ()Landroidx/compose/foundation/layout/PaddingValues;
+	public final fun getFontSize-XSAIIZE ()J
+	public final fun getMinHeight-D9Ej5fM ()F
+	public final fun getShape ()Landroidx/compose/foundation/shape/RoundedCornerShape;
+	public final fun getTextMaxWidth-D9Ej5fM ()F
+}
+
+public final class top/zhjh/zui/composable/ZCheckTagKt {
+	public static final fun ZCheckTag (ZLkotlin/jvm/functions/Function1;Landroidx/compose/ui/Modifier;Ltop/zhjh/zui/enums/ZColorType;ZLkotlin/jvm/functions/Function3;Landroidx/compose/runtime/Composer;II)V
+	public static final fun ZCheckTag (ZLkotlin/jvm/functions/Function1;Ljava/lang/String;Landroidx/compose/ui/Modifier;Ltop/zhjh/zui/enums/ZColorType;ZLandroidx/compose/runtime/Composer;II)V
+}
+
 public final class top/zhjh/zui/composable/ZCheckboxDefaults {
 	public static final field $stable I
 	public static final field INSTANCE Ltop/zhjh/zui/composable/ZCheckboxDefaults;
@@ -686,6 +701,66 @@ public final class top/zhjh/zui/composable/ZTabsType : java/lang/Enum {
 	public static fun getEntries ()Lkotlin/enums/EnumEntries;
 	public static fun valueOf (Ljava/lang/String;)Ltop/zhjh/zui/composable/ZTabsType;
 	public static fun values ()[Ltop/zhjh/zui/composable/ZTabsType;
+}
+
+public final class top/zhjh/zui/composable/ZTagDefaults {
+	public static final field $stable I
+	public static final field CloseTransitionDurationMillis I
+	public static final field INSTANCE Ltop/zhjh/zui/composable/ZTagDefaults;
+	public final fun getBorderWidth-D9Ej5fM ()F
+	public final fun getCloseButtonSize-D9Ej5fM ()F
+	public final fun getCloseIconSize-D9Ej5fM ()F
+	public final fun getCloseIconSpacing-D9Ej5fM ()F
+	public final fun getContentPadding ()Landroidx/compose/foundation/layout/PaddingValues;
+	public final fun getFontSize-XSAIIZE ()J
+	public final fun getLargeCloseButtonSize-D9Ej5fM ()F
+	public final fun getLargeCloseIconSize-D9Ej5fM ()F
+	public final fun getLargeCloseIconSpacing-D9Ej5fM ()F
+	public final fun getLargeContentPadding ()Landroidx/compose/foundation/layout/PaddingValues;
+	public final fun getLargeFontSize-XSAIIZE ()J
+	public final fun getLargeMinHeight-D9Ej5fM ()F
+	public final fun getMinHeight-D9Ej5fM ()F
+	public final fun getRoundShape ()Landroidx/compose/foundation/shape/RoundedCornerShape;
+	public final fun getShape ()Landroidx/compose/foundation/shape/RoundedCornerShape;
+	public final fun getSmallCloseButtonSize-D9Ej5fM ()F
+	public final fun getSmallCloseIconSize-D9Ej5fM ()F
+	public final fun getSmallCloseIconSpacing-D9Ej5fM ()F
+	public final fun getSmallContentPadding ()Landroidx/compose/foundation/layout/PaddingValues;
+	public final fun getSmallFontSize-XSAIIZE ()J
+	public final fun getSmallMinHeight-D9Ej5fM ()F
+	public final fun getTextMaxWidth-D9Ej5fM ()F
+}
+
+public final class top/zhjh/zui/composable/ZTagEffect : java/lang/Enum {
+	public static final field Dark Ltop/zhjh/zui/composable/ZTagEffect;
+	public static final field Light Ltop/zhjh/zui/composable/ZTagEffect;
+	public static final field Plain Ltop/zhjh/zui/composable/ZTagEffect;
+	public static fun getEntries ()Lkotlin/enums/EnumEntries;
+	public static fun valueOf (Ljava/lang/String;)Ltop/zhjh/zui/composable/ZTagEffect;
+	public static fun values ()[Ltop/zhjh/zui/composable/ZTagEffect;
+}
+
+public final class top/zhjh/zui/composable/ZTagKt {
+	public static final fun ZTag-OkTjGUA (Landroidx/compose/ui/Modifier;Ltop/zhjh/zui/composable/ZTagSize;Ltop/zhjh/zui/composable/ZTagEffect;Ltop/zhjh/zui/enums/ZColorType;ZZZJZLkotlin/jvm/functions/Function0;Ljava/lang/String;Lkotlin/jvm/functions/Function0;Lkotlin/jvm/functions/Function3;Landroidx/compose/runtime/Composer;III)V
+	public static final fun ZTag-nGkvg6s (Ljava/lang/String;Landroidx/compose/ui/Modifier;Ltop/zhjh/zui/composable/ZTagSize;Ltop/zhjh/zui/composable/ZTagEffect;Ltop/zhjh/zui/enums/ZColorType;ZZZJZLkotlin/jvm/functions/Function0;Ltop/zhjh/zui/composable/ZTagTooltipMode;Ltop/zhjh/zui/composable/ZTooltipDefaults$Placements;Ljava/lang/String;Lkotlin/jvm/functions/Function0;Landroidx/compose/runtime/Composer;III)V
+}
+
+public final class top/zhjh/zui/composable/ZTagSize : java/lang/Enum {
+	public static final field Default Ltop/zhjh/zui/composable/ZTagSize;
+	public static final field Large Ltop/zhjh/zui/composable/ZTagSize;
+	public static final field Small Ltop/zhjh/zui/composable/ZTagSize;
+	public static fun getEntries ()Lkotlin/enums/EnumEntries;
+	public static fun valueOf (Ljava/lang/String;)Ltop/zhjh/zui/composable/ZTagSize;
+	public static fun values ()[Ltop/zhjh/zui/composable/ZTagSize;
+}
+
+public final class top/zhjh/zui/composable/ZTagTooltipMode : java/lang/Enum {
+	public static final field Always Ltop/zhjh/zui/composable/ZTagTooltipMode;
+	public static final field None Ltop/zhjh/zui/composable/ZTagTooltipMode;
+	public static final field OnlyOnOverflow Ltop/zhjh/zui/composable/ZTagTooltipMode;
+	public static fun getEntries ()Lkotlin/enums/EnumEntries;
+	public static fun valueOf (Ljava/lang/String;)Ltop/zhjh/zui/composable/ZTagTooltipMode;
+	public static fun values ()[Ltop/zhjh/zui/composable/ZTagTooltipMode;
 }
 
 public final class top/zhjh/zui/composable/ZTextFieldDefaults {
